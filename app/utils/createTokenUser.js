@@ -8,4 +8,13 @@ const createTokenUser = (user) => {
   }
 }
 
-module.exports = { createTokenUser }
+const createTokenParticipant = (participan) => {
+  return {
+    firstName: participan.firstName,
+    lastName: participan.lastName,
+    email: participan.email,
+    participanId: participan._id,
+  }
+}
+
+module.exports = { createTokenUser, createTokenParticipant }

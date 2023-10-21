@@ -5,8 +5,10 @@ const {
   authorizeRoles,
 } = require('../../../middlewares/auth')
 
-const { signup } = require('./controller')
+const { signup, activateParticipant, login } = require('./controller')
 
 router.post('/auth/signup', signup)
+router.put('/auth/activate', activateParticipant)
+router.post('/auth/login', login)
 
 module.exports = router

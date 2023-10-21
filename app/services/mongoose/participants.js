@@ -9,7 +9,7 @@ const {
   UnauthorizedError,
 } = require('../../errors')
 
-const { createJWT, createTokenUser } = require('../../utils')
+const { createJWT, createTokenParticipant } = require('../../utils')
 
 const { otpMail } = require('../mail')
 
@@ -50,4 +50,59 @@ const signupParticipants = async (req) => {
   return result
 }
 
-module.exports = { signupParticipants }
+const activateParticipants = async (req) => {
+  const { email, otp } = req.body
+  const check = await Participants.findOne({
+    email,
+  })
+
+  if (!check) throw new NotFoundError('Partisipan belum terdaftar')
+
+  if (check && check.otp !== otp) throw new BadRequestError('Kode otp salah')
+
+  const result = await Participants.findOneAndUpdate(
+    { _id: check._id },
+    {
+      status: 'aktif',
+    },
+    { new: true, runValidators: true }
+  )
+
+  delete result._doc.password
+
+  return result
+}
+
+const signinParticipants = async (req) => {
+  const { email, password } = req.body
+
+  if (!email || !password) {
+    throw new BadRequestError('Please provide email and password')
+  }
+
+  const result = await Participants.findOne({ email })
+
+  if (!result) {
+    throw new UnauthorizedError('Invalid creadential')
+  }
+
+  if (result.status === 'tidak aktif') {
+    throw new BadRequestError('Akun anda belum aktif')
+  }
+
+  const isPasswordCorrent = await result.comparePassword(password)
+
+  if (!isPasswordCorrent) {
+    throw new UnauthorizedError('Invalid creadential')
+  }
+
+  const token = createJWT({ payload: createTokenParticipant(result) })
+
+  return token
+}
+
+module.exports = {
+  signupParticipants,
+  activateParticipants,
+  signinParticipants,
+}
