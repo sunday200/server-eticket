@@ -22,10 +22,18 @@ const authtenticateUser = async (req, res, next) => {
     req.user = {
       email: payload.email,
       role: payload.role,
-      name: payload.name,
+      name: payload.name || payload.firstName,
       organizer: payload.organizer,
-      id: payload.userId,
+      id: payload.userId || payload.participanId,
     }
+
+    /*
+    ini dari participan
+    firstName: participan.firstName,
+    lastName: participan.lastName,
+    email: participan.email,
+    participanId: participan._id,
+    */
 
     next()
   } catch (error) {

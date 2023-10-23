@@ -1,4 +1,5 @@
-const Event = require('../../api/v1/events/model')
+const { populate } = require('dotenv')
+const Events = require('../../api/v1/events/model')
 const Orders = require('../../api/v1/orders/model')
 const Participants = require('../../api/v1/participants/model')
 // Payment
@@ -101,8 +102,42 @@ const signinParticipants = async (req) => {
   return token
 }
 
+const getAllEvent = async () => {
+  const result = await Events.find({ statusEvent: 'Published' })
+    .populate('category')
+    .populate('image')
+    .select('_id title date tickets venueName')
+
+  return result
+}
+
+const getOneEvent = async (req) => {
+  const { id } = req.params
+
+  const result = await Events.findOne({ _id: id })
+    .populate('category')
+    .populate({ path: 'talent', populate: 'image' })
+    .populate('image')
+
+  if (!result) throw new NotFoundError(`Tidak ada acara dengan id: ${id}`)
+
+  return result
+}
+
+const getAllOrders = async (req) => {
+  // from jwt
+  const participant = req.user.id
+
+  const result = await Orders.find({ participant })
+
+  return result
+}
+
 module.exports = {
   signupParticipants,
   activateParticipants,
   signinParticipants,
+  getAllEvent,
+  getOneEvent,
+  getAllOrders,
 }
