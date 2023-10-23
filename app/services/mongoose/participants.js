@@ -1,8 +1,7 @@
-const { populate } = require('dotenv')
 const Events = require('../../api/v1/events/model')
 const Orders = require('../../api/v1/orders/model')
 const Participants = require('../../api/v1/participants/model')
-// Payment
+const Payments = require('../../api/v1/payments/model')
 
 const {
   BadRequestError,
@@ -133,6 +132,75 @@ const getAllOrders = async (req) => {
   return result
 }
 
+const checkoutOrder = async (req) => {
+  const { event, personalDetail, payment, tickets } = req.body
+
+  const checkingEvent = await Events.findOne({ _id: event })
+
+  if (!checkingEvent)
+    throw new NotFoundError(`Tidak ada acara dengan id: ${event}`)
+
+  const checkingPayment = await Payments.findOne({ _id: payment })
+
+  if (!checkingPayment)
+    throw new NotFoundError(`Tidak ada payment dengan id: ${payment}`)
+
+  let totalPay = 0,
+    totalOrderTicket = 0
+
+  await tickets.forEach((ticketBuy) => {
+    // Chek di event
+    checkingEvent.tickets.forEach((ticketAvail) => {
+      // Chek apakah tipe tiket yang akan kita beli dengan tiket yang tersedia
+      if (ticketBuy.ticketCategories.type === ticketAvail.type) {
+        // Cek apakah jumlah tiket yang tersedia lebih banyak dari tiket yang akan dibeli
+        if (ticketBuy.sumTicket > ticketAvail.stock) {
+          throw new NotFoundError('stock tiket event tidak mencukupi')
+        } else {
+          // kurangi ticket yang tersedia dengan tiket yang dibeli
+          ticketAvail.stock -= ticketBuy.sumTicket
+
+          totalOrderTicket += ticketBuy.sumTicket
+
+          totalPay += ticketBuy.ticketCategories.price * ticketBuy.sumTicket
+        }
+      }
+    })
+  })
+
+  // Simpan di dalam database event | mengurangi jumlah tiket yang ada didatabase event
+  await checkingEvent.save()
+
+  const historyEvent = {
+    title: checkingEvent.title,
+    date: checkingEvent.date,
+    about: checkingEvent.about,
+    tagline: checkingEvent.tagline,
+    keyPoint: checkingEvent.keyPoint,
+    venueName: checkingEvent.venueName,
+    tickets: tickets,
+    image: checkingEvent.image,
+    category: checkingEvent.category,
+    talent: checkingEvent.talent,
+    organizer: checkingEvent.organizer,
+  }
+
+  const result = new Orders({
+    date: new Date(),
+    personalDetail: personalDetail,
+    totalPay,
+    totalOrderTicket,
+    orderItems: tickets,
+    participant: req.user.id,
+    event,
+    historyEvent,
+    payment,
+  })
+
+  await result.save()
+  return result
+}
+
 module.exports = {
   signupParticipants,
   activateParticipants,
@@ -140,4 +208,5 @@ module.exports = {
   getAllEvent,
   getOneEvent,
   getAllOrders,
+  checkoutOrder,
 }

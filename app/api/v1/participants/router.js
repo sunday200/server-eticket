@@ -12,6 +12,7 @@ const {
   index,
   find,
   getOrder,
+  checkout,
 } = require('./controller')
 
 router.post('/auth/signup', signup)
@@ -20,5 +21,7 @@ router.post('/auth/login', login)
 router.get('/events', index)
 router.get('/events/:id', find)
 router.get('/orders', authtenticateUser, getOrder)
+
+router.post('/checkout', authtenticateUser, checkout)
 
 module.exports = router
